@@ -1,5 +1,6 @@
 require 'error/command_error'
 require 'error/symbol_error'
+require 'core/debug_output'
 
 ##
 # This module contains all the commands that the user may
@@ -13,6 +14,7 @@ require 'error/symbol_error'
 # stable and made available to all components of the project to ensure
 # one standardised symbol table.
 module Commands
+  include DebugOutput
 
   ##
   # Appends the expression provided by the user to the end of
@@ -35,6 +37,7 @@ module Commands
   ##
   # Lists all the symbols present inside the symbol table
   def perform_list
+    puts 'Symbol table (special chars escaped):'
     @symbol_table.symbols.each do |sym|
       puts sym
     end
@@ -102,13 +105,13 @@ module Commands
   # @raise CommandError if the target symbol doesn't exist
   def perform_reverse(target_symbol)
     unless @symbol_table.symbol? target_symbol
-      raise CommandError, "Cannot append to #{target_symbol} as it doesn't exist"
+      raise CommandError, "Cannot reverse contents of #{target_symbol} as it doesn't exist"
     end
 
     sym = @symbol_table.retrieve_symbol target_symbol
 
-    matches = sym.value.scan /(\w+)*/
-    matches.reverse.join ' '
+    matches = sym.value.scan /\w+/
+    sym.value = matches.reverse.join ' '
   end
 
   private

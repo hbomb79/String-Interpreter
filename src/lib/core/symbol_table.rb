@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 require 'core/symbol_table_entry'
+require 'core/debug_output'
 
 ##
 #
 class SymbolTable
+  include DebugOutput
   attr_reader :symbols
 
   def initialize
@@ -17,14 +19,14 @@ class SymbolTable
   # If the symbol already exists, attempts to change the value.
   #
   # @raise SymbolError Raised if the symbol being edited is readonly (only valid for pre-existing symbol)
-  def store_symbol(symbol_name, symbol_value)
+  def store_symbol(symbol_name, symbol_value, readonly: false)
     sym = fetch_symbol symbol_name
     if sym
-      raise SymbolError, "Symbol #{sym} cannot be modified" if sym.readonly
+      raise SymbolError, "#{sym} cannot be modified" if sym.readonly
 
       sym.value = symbol_value
     else
-      sym = SymbolTableEntry.new(symbol_name, symbol_value) if sym.nil?
+      sym = SymbolTableEntry.new(symbol_name, symbol_value, readonly: readonly) if sym.nil?
       @symbols.append sym
     end
   end

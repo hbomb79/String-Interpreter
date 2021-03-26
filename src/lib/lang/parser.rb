@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 require 'error/expression_error'
+require 'core/debug_output'
 
 ##
 # TODO: Doc
 class Parser
+  include DebugOutput
+
   ##
   # TODO: Doc
   def initialize(interpreter)
@@ -16,6 +19,7 @@ class Parser
   ##
   # TODO: Doc
   def parse_tokens(tokens)
+    debug 'Starting parse of tokens received..'
     if @state != :ready
       raise_parser_error "Attempting to start parser while already running/not in ready state (state found #{@state})"
     end
@@ -37,7 +41,7 @@ class Parser
       end
     end
 
-    puts 'Parsing complete'
+    debug 'Parsing complete'
     @state = :ready
   end
 
@@ -118,10 +122,8 @@ class Parser
     when :printwordcount
       @app.perform_printwordcount parse_expression
     when :set
-      puts "searching for set target"
       name_token = expect_token :name
 
-      puts "performing set"
       @app.perform_set(name_token.value, parse_expression)
     when :reverse
       name_token = expect_token :name
@@ -131,6 +133,7 @@ class Parser
       raise_parser_error "Unexpected keyword #{current_token.value}... this shouldn't happen. Please report bug."
     end
 
+    debug "Command for #{@state_arg} completed. Resetting parser state."
     @state = :root
     @state_arg = nil
   end
@@ -139,6 +142,8 @@ class Parser
   # TODO: Doc
   def expect_token(token_types, offset = 0, consume: true)
     print_token_stack
+
+    debug "Asserting that token at offset #{offset} must be of type #{token_types} - consume? #{consume}"
 
     if token_types.instance_of? Array
       token_types.each do |t|
@@ -165,7 +170,7 @@ class Parser
   # Returns true if the current token (or otherwise specified by offset)
   # is the type provided. False if no token, or incorrect type.
   def test_token(token_type, offset = 0)
-    puts "Testing for #{token_type} with offset #{offset}"
+    debug "Testing for #{token_type} with offset #{offset}", :verbose
 
     peeked = peek_token(offset)
     !peeked.nil? && peeked.type == token_type
@@ -175,22 +180,14 @@ class Parser
   # TODO: Doc
   def parse_expression
     expr = []
-
     loop do
-      print_token_stack
-      # Test we have tokens remaining
-      raise ExpressionError, 'Expression definition incomplete.. more terms expected (NAME, STRING, OPERATOR or TERMINATOR)' if current_token.nil?
+      raise ExpressionError, 'Expression definition incomplete.. more terms expected' unless current_token
 
-      # Each iteration consumes a block which should be of format: name [+/;]
-      # If `name +` then iteration continues, searching for another name on next iter
-      # If `name ;` then iteration is terminated
       name = expect_token %i[name string]
-
-      puts "Expression TARGET found as #{name}"
       expr.append name
 
-      # Check token following name, must be + or ;
-      puts "Expression FOLLOWER found as #{current_token}"
+      debug "Expression identifier found as #{name} - appending to expr stack"
+
       if current_token.nil?
         raise ExpressionError, "Expected terminator (;) or operator (+) following #{name} in expression."
       elsif !(current_token.type == :operator || current_token.type == :terminator)
@@ -213,15 +210,26 @@ class Parser
   ##
   # TODO: Doc
   def print_token_stack
-    puts "Token stack:"
+    debug 'Printing token stack:', :verbose
     @tokens.each_with_index do |tk, index|
-      puts "#{index}: #{tk} #{index == @token_index ? "<- Current" : ""}"
+      debug "#{index}: #{tk} #{index == @token_index ? '<- Current' : ''}", :verbose
     end
   end
 
   ##
   # TODO: Doc
   def raise_parser_error(msg = 'Unknown')
-    raise ParserError, msg
+    print_token_stack
+
+    err = "
+Parser Exception!
+-----------------
+State: #{@state}
+Command State: #{@state_arg || 'None'}
+-----------------
+
+While attempting to parse tokenized input, we encountered the following error:
+** #{msg} **"
+    raise ParserError, err
   end
 end

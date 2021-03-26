@@ -3,6 +3,7 @@
 require 'error/token_error'
 require 'error/tokenizer_error'
 require 'lang/token'
+require 'core/debug_output'
 
 ##
 # The tokenizer class exposes the various tokens that may exist for this
@@ -10,6 +11,8 @@ require 'lang/token'
 #
 # The processing sees that the input string is split in to 'tokens' (see lang/token.rb)
 class Tokenizer
+  include DebugOutput
+
   ESCAPE_CHARS = {
     'a' => "\a",
     'b' => "\b",
@@ -38,6 +41,8 @@ class Tokenizer
   # Begins tokenizing the stream by iteratively calling tokenize until
   # no further input remains to be processed.
   def process(input_stream)
+    debug 'Beginning tokenization of input'
+
     @original_stream = input_stream
     @stream = input_stream
     @stream_char = 1
@@ -91,6 +96,7 @@ class Tokenizer
   # Helper method that creates a token with the provided type and value, and
   # also consumes the content of the token from the input stream.
   def create_token(token_type, token_value)
+    debug "Creating token type #{token_type} -> #{token_value}"
     Token.new(token_type, token_value)
   rescue TokenError => e
     raise_tokenizer_error e.message
@@ -101,6 +107,7 @@ class Tokenizer
   def consume(amount = 1)
     consumed = @stream[0..(amount - 1)]
     @stream = @stream[amount..@stream.length]
+    debug "Consuming n=#{amount} chars (#{consumed})", :verbose
 
     consumed
   end
@@ -112,9 +119,8 @@ class Tokenizer
     m = @stream.match pattern
     return if m.nil?
 
-    puts "Consuming n=#{m.end(0)} chars after matching #{m[0]} from #{@stream}..."
+    debug "Consuming n=#{m.end(0)} chars after matching #{m[0]} from #{@stream}...", :verbose
     consume m.end(0)
-    puts @stream
     m[0]
   end
 
@@ -127,12 +133,14 @@ class Tokenizer
     success = false
     str = ''
 
+    debug "Attempting to consume string (with delim: #{delimiter})"
     loop do
       consume
       first = @stream[0]
       break unless first
 
-      puts("Iter for char '#{first}', escaping this char? #{escape_next}, delimiter '#{delimiter}' - current: #{str}")
+      debug "Iter for char '#{first}', escaping this char? #{escape_next}, delimiter '#{delimiter}' - current: #{str}",
+            :verbose
       if escape_next
         str += ESCAPE_CHARS.include?(first) ? ESCAPE_CHARS[first] : first
         escape_next = false
@@ -148,7 +156,7 @@ class Tokenizer
       end
     end
 
-    puts "success: #{success}"
+    debug "String consumption success?: #{success}"
     unless success
       raise_tokenizer_error "Failed to tokenize string, delimited by (#{delimiter}) - end of string was never found!"
     end

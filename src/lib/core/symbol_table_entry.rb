@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'core/debug_output'
+
 ##
 # TODO
 class SymbolTableEntry
@@ -23,6 +25,6 @@ class SymbolTableEntry
   end
 
   def to_s
-    "Symbol {name=#{@name}, val=#{@value}, readonly?=#{@readonly}}"
+    "Symbol {name=#{@name}, val=#{@value.dump}, readonly?=#{@readonly}}"
   end
 end

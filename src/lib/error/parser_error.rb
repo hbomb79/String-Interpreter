@@ -1,5 +1,5 @@
 class ParserError < StandardError
-  def initialize(msg = nil)
-    super msg
+  def initialize(error = nil)
+    super error
   end
 end
