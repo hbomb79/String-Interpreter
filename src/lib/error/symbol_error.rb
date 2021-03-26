@@ -1,0 +1,3 @@
+class SymbolError < StandardError
+
+end

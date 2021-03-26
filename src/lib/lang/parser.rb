@@ -48,7 +48,7 @@ class Parser
   def parse
     case @state
     when :root
-      parse_root_state
+      return false unless parse_root_state
     when :command
       parse_command_state
     else
@@ -78,19 +78,23 @@ class Parser
     current_token
   end
 
-  private
-
   ##
   # TODO: Doc
   def parse_root_state
+    return false if current_token.nil?
+
     unless current_token.type == :keyword
       raise_parser_error "Unexpected token #{current_token.type} (#{current_token.value}) found. Expected keyword"
     end
 
     @state = :command
     @state_arg = current_token.value.to_sym
+
+    true
   end
 
+  ##
+  # TODO: Doc
   def parse_command_state
     case @state_arg
     when :append
@@ -114,8 +118,10 @@ class Parser
     when :printwordcount
       @app.perform_printwordcount parse_expression
     when :set
+      puts "searching for set target"
       name_token = expect_token :name
 
+      puts "performing set"
       @app.perform_set(name_token.value, parse_expression)
     when :reverse
       name_token = expect_token :name
@@ -124,46 +130,69 @@ class Parser
     else
       raise_parser_error "Unexpected keyword #{current_token.value}... this shouldn't happen. Please report bug."
     end
+
+    @state = :root
+    @state_arg = nil
   end
 
-  def expect_token(token_type, offset = 0, consume = true)
+  ##
+  # TODO: Doc
+  def expect_token(token_types, offset = 0, consume: true)
     print_token_stack
+
+    if token_types.instance_of? Array
+      token_types.each do |t|
+        next unless test_token(t, offset)
+
+        tk = peek_token offset
+        step_forward(1 + offset) if consume
+
+        return tk
+      end
+
+      return false
+    elsif test_token token_types, offset
+      tk = peek_token offset
+      step_forward(1 + offset) if consume
+
+      return tk
+    end
+
+    raise_parser_error "Unexpected #{(peek_token offset) || 'END OF INPUT'}, expected #{token_types} token.."
+  end
+
+  ##
+  # Returns true if the current token (or otherwise specified by offset)
+  # is the type provided. False if no token, or incorrect type.
+  def test_token(token_type, offset = 0)
     puts "Testing for #{token_type} with offset #{offset}"
 
     peeked = peek_token(offset)
-    raise_parser_error "Expected #{token_type} token, but found #{peeked.nil? ? 'END OF STATEMENT' : peeked}." unless !peeked.nil? && peeked.type == token_type
-
-    step_forward if consume
-    peeked
+    !peeked.nil? && peeked.type == token_type
   end
 
-  def print_token_stack
-    puts "Token stack:"
-    @tokens.each_with_index do |tk, index|
-      puts "#{index}: #{tk} #{index == @token_index ? "<- Current" : ""}"
-    end
-  end
-
+  ##
+  # TODO: Doc
   def parse_expression
     expr = []
-    raise ExpressionError, 'No terms found' if current_token.nil?
 
     loop do
       print_token_stack
       # Test we have tokens remaining
-      raise ExpressionError, 'Expected more terms (NAME, OPERATOR or TERMINATOR)' if current_token.nil?
+      raise ExpressionError, 'Expression definition incomplete.. more terms expected (NAME, STRING, OPERATOR or TERMINATOR)' if current_token.nil?
 
       # Each iteration consumes a block which should be of format: name [+/;]
       # If `name +` then iteration continues, searching for another name on next iter
       # If `name ;` then iteration is terminated
-      name = expect_token :name
-      puts "Expression NAME found as #{name}"
-      expr.append name.value
+      name = expect_token %i[name string]
+
+      puts "Expression TARGET found as #{name}"
+      expr.append name
 
       # Check token following name, must be + or ;
-      puts "Expression VALUE found as #{current_token}"
+      puts "Expression FOLLOWER found as #{current_token}"
       if current_token.nil?
-        raise ExpressionError, "Expected terminator (;) or operator (+) token following #{name} in expression."
+        raise ExpressionError, "Expected terminator (;) or operator (+) following #{name} in expression."
       elsif !(current_token.type == :operator || current_token.type == :terminator)
         raise ExpressionError, "Unexpected #{current_token} inside expression; expected terminator (;) or operator (+)"
       elsif current_token.type == :terminator
@@ -175,9 +204,23 @@ class Parser
 
     expr
   rescue ExpressionError => e
-    raise_parser_error "Failed to parse expression: #{e.message}"
+    raise_parser_error "Failed to parse expression: #{e.message}" unless @state_arg
+    raise_parser_error "Expression error for #{@state_arg} command: #{e.message}"
   end
 
+  private
+
+  ##
+  # TODO: Doc
+  def print_token_stack
+    puts "Token stack:"
+    @tokens.each_with_index do |tk, index|
+      puts "#{index}: #{tk} #{index == @token_index ? "<- Current" : ""}"
+    end
+  end
+
+  ##
+  # TODO: Doc
   def raise_parser_error(msg = 'Unknown')
     raise ParserError, msg
   end

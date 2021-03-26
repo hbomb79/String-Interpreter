@@ -130,6 +130,7 @@ class Tokenizer
     loop do
       consume
       first = @stream[0]
+      break unless first
 
       puts("Iter for char '#{first}', escaping this char? #{escape_next}, delimiter '#{delimiter}' - current: #{str}")
       if escape_next
@@ -149,7 +150,7 @@ class Tokenizer
 
     puts "success: #{success}"
     unless success
-      raise_tokenizer_error "Failed to tokenize string, delimited by #{delimiter}... end of string was never found!"
+      raise_tokenizer_error "Failed to tokenize string, delimited by (#{delimiter}) - end of string was never found!"
     end
 
     str
