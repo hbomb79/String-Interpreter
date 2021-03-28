@@ -154,6 +154,10 @@ class Tokenizer
   # Takes the input stream for this tokenizer and attempts to
   # tokenize a string (that is, content between two delimiting symbols). Quotes inside of
   # the string can be escaped with a backslash.
+  #
+  # This method saves it's progress to @partial_string while it's state is :string, allowing a string to be tokenized
+  # over multiple lines.
+  # The interpreter will not attempt to parse any of the tokens until the state of the tokenizer is :root (not :string)
   def consume_string()
     delimiter = @partial_string['delimiter']
     escape_next = @partial_string['escape_next']

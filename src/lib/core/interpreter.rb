@@ -29,7 +29,7 @@ class Interpreter
   # will terminate the user input (and hand off this information
   # to the tokenizer/parser). It marks the end of user input for this current
   # command. For this program that is a semi-colon followed by a newline.
-  INPUT_TERMINATOR = "\n"
+  INPUT_TERMINATOR = ";\n"
 
   attr_reader :symbol_table
 
