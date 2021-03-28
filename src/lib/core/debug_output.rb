@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+#
+# Felton, Harry, 18032692, Assignment 1, 159.341
+
 ##
 #
 module DebugOutput

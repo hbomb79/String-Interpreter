@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Felton, Harry, 18032692, Assignment 1, 159.341
+
 require 'error/token_error'
 require 'error/tokenizer_error'
 require 'lang/token'
@@ -72,10 +74,6 @@ class Tokenizer
     return create_token(:name, consume_pattern(NAME_DEF)) unless @stream.match(NAME_DEF).nil?
 
     raise_tokenizer_error "Illegal character '#{@stream[0]}' - unable to form a token with this character!"
-  end
-
-  def raise_tokenizer_error(msg = nil)
-    raise TokenizerError.new(@original_stream, @stream, msg)
   end
 
   private
@@ -162,5 +160,9 @@ class Tokenizer
     end
 
     str
+  end
+
+  def raise_tokenizer_error(msg = nil)
+    raise TokenizerError.new(@original_stream, @stream, msg)
   end
 end

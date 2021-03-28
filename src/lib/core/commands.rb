@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+#
+# Felton, Harry, 18032692, Assignment 1, 159.341
+
 require 'error/command_error'
 require 'error/symbol_error'
 require 'core/debug_output'
@@ -26,10 +30,10 @@ module Commands
       raise CommandError, "Cannot append to #{target_symbol} as it doesn't exist"
     end
 
-    val = @symbol_table.retrieve_symbol target_symbol
-    val += resolve_expression_stack expression_stack
+    sym = @symbol_table.retrieve_symbol target_symbol
+    value = sym.value + (resolve_expression_stack expression_stack)
 
-    @symbol_table.store_symbol target_symbol, val
+    @symbol_table.store_symbol target_symbol, value
   rescue SymbolError => e
     raise CommandError, "Command cannot be executed - #{e.message}"
   end
@@ -73,7 +77,7 @@ module Commands
   # @raise CommandError if the expression provided references a symbol that doesn't exist
   def perform_printwords(expression_stack)
     expr = resolve_expression_stack expression_stack
-    matches = expr.scan /(\w+)*/
+    matches = expr.scan /[\w.]+/
 
     puts 'Expression provided following words:'
     puts matches.join "\n"
@@ -85,7 +89,7 @@ module Commands
   # @raise CommandError if the expression provided references a symbol that doesn't exist
   def perform_printwordcount(expression_stack)
     expr = resolve_expression_stack expression_stack
-    matches = expr.scan /(\w+)*/
+    matches = expr.scan /[\w.]+/
 
     puts "Expression provided n=#{matches.length} words:"
   end
@@ -110,8 +114,12 @@ module Commands
 
     sym = @symbol_table.retrieve_symbol target_symbol
 
-    matches = sym.value.scan /\w+/
-    sym.value = matches.reverse.join ' '
+    matches = sym.value.scan /(\w+|\.+)(\s*)/
+
+    sym.value = ''
+    matches.reverse_each do |i|
+      sym.value += "#{i[1]}#{i[0]}"
+    end
   end
 
   private

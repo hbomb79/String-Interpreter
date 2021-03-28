@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
+# Felton, Harry, 18032692, Assignment 1, 159.341
+
 require 'error/expression_error'
 require 'core/debug_output'
 
 ##
-# TODO: Doc
+# The parser class is responsible for accepting a stream of tokens, and confirming that they're
+# in the correct order - if they are then the associated command/expression is executed.
 class Parser
   include DebugOutput
 
   ##
-  # TODO: Doc
+  # Initialises the parser instance with sane defaults
   def initialize(interpreter)
     @app = interpreter
     @state = :ready
@@ -17,7 +20,7 @@ class Parser
   end
 
   ##
-  # TODO: Doc
+  # The root of the parser, iteratively attempts to parse the meaning of the next token
   def parse_tokens(tokens)
     debug 'Starting parse of tokens received..'
     if @state != :ready
@@ -48,7 +51,8 @@ class Parser
   protected
 
   ##
-  # TODO: Doc
+  # Depending on the state of the parser (as in, are we inside or outside of a command), executes
+  # a method that will attempt to figure out what this token means
   def parse
     case @state
     when :root
@@ -63,27 +67,28 @@ class Parser
   end
 
   ##
-  # TODO: Doc
+  # Returns the token currently being parsed
   def current_token
     @tokens[@token_index]
   end
 
   ##
-  # TODO: Doc
+  # Looks ahead by 'amount' in the token stack and returns that token
   def peek_token(amount = 1)
     index = @token_index + amount
     @tokens[index]
   end
 
   ##
-  # TODO: Doc
+  # Same as peek token, however rather than 'peeking', the token stack is
+  # ~advanced~ to the position provided
   def step_forward(amount = 1)
     @token_index += amount
     current_token
   end
 
   ##
-  # TODO: Doc
+  # Parses the current token as if we're at the root state of the expression. Essentially always expects a keyword.
   def parse_root_state
     return false if current_token.nil?
 
@@ -98,7 +103,8 @@ class Parser
   end
 
   ##
-  # TODO: Doc
+  # Parses a command during the command state of the parser. Depending on the state_arg (ie: the command we're
+  # trying to resolve), a different configuration of tokens will be expected.
   def parse_command_state
     case @state_arg
     when :append
@@ -139,7 +145,13 @@ class Parser
   end
 
   ##
-  # TODO: Doc
+  # A helper method used when we 'expect' the presence of a certain type(s) of token. The token_types param can be
+  # a single type (:name), or an array of types that are acceptable (%i[name string]).
+  #
+  # The offset (def. 0) will be passed to peek_token when checking the token. As the default is zero, it means the
+  # current token will be tested.
+  #
+  # If consume is true then after a successful match, the token stack will be advanced by 1 + offset.
   def expect_token(token_types, offset = 0, consume: true)
     print_token_stack
 
@@ -154,8 +166,6 @@ class Parser
 
         return tk
       end
-
-      return false
     elsif test_token token_types, offset
       tk = peek_token offset
       step_forward(1 + offset) if consume
@@ -163,7 +173,8 @@ class Parser
       return tk
     end
 
-    raise_parser_error "Unexpected #{(peek_token offset) || 'END OF INPUT'}, expected #{token_types} token.."
+    pk_tk = peek_token offset
+    raise_parser_error "Unexpected #{pk_tk.nil? ? 'END OF INPUT' : "#{pk_tk.type} token (#{pk_tk.value})"}, expected #{token_types} token.."
   end
 
   ##
@@ -177,7 +188,9 @@ class Parser
   end
 
   ##
-  # TODO: Doc
+  # Searches through the token stack in order to resolve an expression. For instance, if we're parsing the set
+  # command then that command expects an expression following the name token specifying the symbol to store
+  # the expression in.
   def parse_expression
     expr = []
     loop do
@@ -208,7 +221,7 @@ class Parser
   private
 
   ##
-  # TODO: Doc
+  # A debug function used to print out the current token stack, and the parsers position inside of it.
   def print_token_stack
     debug 'Printing token stack:', :verbose
     @tokens.each_with_index do |tk, index|
@@ -217,7 +230,7 @@ class Parser
   end
 
   ##
-  # TODO: Doc
+  # Throws a parser exception to the interpreter
   def raise_parser_error(msg = 'Unknown')
     print_token_stack
 

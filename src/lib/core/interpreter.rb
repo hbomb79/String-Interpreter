@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+#
+# Felton, Harry, 18032692, Assignment 1, 159.341
 
 require 'core/symbol_table'
 require 'lang/tokenizer'
@@ -18,12 +20,14 @@ class Interpreter
   include Commands
   include DebugOutput
 
+  ##
+  # The debug level for this application. Options are :off, :basic and :verbose
   DEBUG_LEVEL = :off
 
   attr_reader :symbol_table
 
   ##
-  # TODO: Doc
+  # Initialise the interpreter by configuring our debugger, and initialising our tokenizer, parser and symbol table.
   def initialize
     DebugOutput.debug_level = DEBUG_LEVEL
 
@@ -36,6 +40,8 @@ class Interpreter
     init_constants
   end
 
+  ##
+  # Populates the symbol table with our readonly symbols
   def init_constants
     @symbol_table.store_symbol 'SPACE', ' ', readonly: true
     @symbol_table.store_symbol 'TAB', "\t", readonly: true
@@ -43,14 +49,14 @@ class Interpreter
   end
 
   ##
-  # TODO: Doc
+  # Opens the interpreter by allowing user input
   def open
     @is_running = true
     run_interpreter
   end
 
   ##
-  # TODO: Doc
+  # Closes the interpreter
   def close
     @is_running = false
   end
@@ -58,7 +64,9 @@ class Interpreter
   protected
 
   ##
-  # TODO: Doc
+  # The root of the interpreter; runs a loop while @is_running, and continually
+  # requests user input from STDIN. The input is haded to the tokenizer, and the
+  # resulting tokens are parsed. All predictable exceptions are rescued here.
   def run_interpreter
     while @is_running
       begin
@@ -72,9 +80,9 @@ class Interpreter
 
         @parser.parse_tokens tokens
       rescue TokenizerError, ParserError => e
-        warn "[#{e.class.name}] Syntax error => #{e.message}"
+        warn "\n[#{e.class.name}] Syntax error => #{e.message}"
       rescue CommandError, SymbolError => e
-        warn "[#{e.class.name}] Command invalid => #{e.message}"
+        warn "\n[#{e.class.name}] Command invalid => #{e.message}"
       rescue StandardError => e
         warn "\nWhile parsing this command, this interpreter encountered a fatal error!\nError message:\n#{e.message}\n\nStacktrace:"
         warn "#{e.backtrace.join("\n")}\n\n"

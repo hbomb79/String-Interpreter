@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+#
+# Felton, Harry, 18032692, Assignment 1, 159.341
 
 require 'core/symbol_table_entry'
 require 'core/debug_output'

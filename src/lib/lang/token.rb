@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
+# Felton, Harry, 18032692, Assignment 1, 159.341
+
 require 'error/token_error'
 
 ##
-# TODO
+# A simple class to hold information about our tokens
 class Token
   VALID_TOKEN_TYPES = %i[keyword string name operator terminator].freeze
 
