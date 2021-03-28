@@ -29,7 +29,7 @@ class Parser
 
     @tokens = tokens
     @token_index = 0
-    @state = :root
+    reset_state :root
 
     # Continue parse loop until method returns false
     loop do
@@ -39,16 +39,22 @@ class Parser
 
         step_forward
       rescue StandardError => e
-        @state = :ready
+        reset_state
+
         raise e
       end
     end
 
     debug 'Parsing complete'
-    @state = :ready
+    reset_state
   end
 
   protected
+
+  def reset_state(state = :ready)
+    @state = state
+    @state_arg = nil
+  end
 
   ##
   # Depending on the state of the parser (as in, are we inside or outside of a command), executes
@@ -139,9 +145,8 @@ class Parser
       raise_parser_error "Unexpected keyword #{current_token.value}... this shouldn't happen. Please report bug."
     end
 
-    debug "Command for #{@state_arg} completed. Resetting parser state."
-    @state = :root
-    @state_arg = nil
+    debug "Command for #{@state_arg} completed. Resetting parser state to :root"
+    reset_state :root
   end
 
   ##
