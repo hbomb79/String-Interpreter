@@ -39,6 +39,12 @@ class Tokenizer
   # chars (incl. underscore). For instance: this_is_name1 will match as a name, but 1name will not.
   NAME_DEF = /^([a-zA-Z][a-zA-z\d]*)/.freeze
 
+  attr_reader :partial_string, :state
+
+  def initialize
+    reset_state
+  end
+
   ##
   # Begins tokenizing the stream by iteratively calling tokenize until
   # no further input remains to be processed.
@@ -47,9 +53,13 @@ class Tokenizer
 
     @stream = input_stream
     @stream_char = 1
-    @output = []
 
-    @output.append(tokenize) until @stream.strip.empty?
+    @output = [] if @state == :root
+
+    until @stream.strip.empty?
+      tk = tokenize
+      @output.append(tk) if tk.instance_of? Token
+    end
 
     @output
   end
@@ -59,6 +69,8 @@ class Tokenizer
   ##
   # Called iteratively by `process` until the stream is found to be empty;
   def tokenize
+    return consume_string if @state == :string
+
     trim_stream
 
     # Check if we're dealing with a keyword!
@@ -67,15 +79,32 @@ class Tokenizer
     # Now we must check to see what else we could be finding. Remember whatever we
     # encounter here is the *start* of whatever token it is; a " character here means
     # the start of a string..
+    if @stream[0].match STRING_START_DEF
+      @state = :string
+      @partial_string['delimiter'] = @stream[0]
+      consume
+
+      return nil
+    end
+
     return create_token(:terminator, consume) if @stream[0] == ';'
     return create_token(:operator, consume) if @stream[0] == '+'
-    return create_token(:string, consume_string(@stream[0])) if @stream[0].match STRING_START_DEF
+
     return create_token(:name, consume_pattern(NAME_DEF)) unless @stream.match(NAME_DEF).nil?
 
     raise_tokenizer_error "Illegal character '#{@stream[0]}' - unable to form a token with this character!"
   end
 
   private
+
+  def reset_state
+    @state = :root
+    @partial_string = {
+      'delimiter' => '',
+      'escape_next' => false,
+      'built' => ''
+    }
+  end
 
   ##
   # Trims the stream by removing leading whitespace, and advancing
@@ -125,21 +154,21 @@ class Tokenizer
   # Takes the input stream for this tokenizer and attempts to
   # tokenize a string (that is, content between two delimiting symbols). Quotes inside of
   # the string can be escaped with a backslash.
-  def consume_string(delimiter = '"')
-    escape_next = false
+  def consume_string()
+    delimiter = @partial_string['delimiter']
+    escape_next = @partial_string['escape_next']
+    built = @partial_string['built']
     success = false
-    str = ''
 
     debug "Attempting to consume string (with delim: #{delimiter})"
     loop do
-      consume
       first = @stream[0]
       break unless first
 
-      debug "Iter for char '#{first}', escaping this char? #{escape_next}, delimiter '#{delimiter}' - current: #{str}",
+      debug "Iter for char '#{first}', escaping this char? #{escape_next}, delimiter '#{delimiter}' - current: #{built}",
             :verbose
       if escape_next
-        str += ESCAPE_CHARS.include?(first) ? ESCAPE_CHARS[first] : first
+        built += ESCAPE_CHARS.include?(first) ? ESCAPE_CHARS[first] : first
         escape_next = false
       elsif first == '\\'
         escape_next = true
@@ -149,19 +178,23 @@ class Tokenizer
 
         break
       else
-        str += first
+        built += first
       end
+
+      consume
     end
 
     debug "String consumption success?: #{success}"
-    unless success
-      raise_tokenizer_error "Failed to tokenize string, delimited by (#{delimiter}) - end of string was never found!"
+    if success
+      reset_state
+      create_token(:string, built)
+    else
+      @partial_string['escape_next'] = escape_next
+      @partial_string['built'] = built
     end
-
-    str
   end
 
   def raise_tokenizer_error(msg = nil)
-    raise TokenizerError.new msg
+    raise TokenizerError.new(msg)
   end
 end

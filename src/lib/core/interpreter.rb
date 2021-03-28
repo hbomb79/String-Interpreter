@@ -29,7 +29,7 @@ class Interpreter
   # will terminate the user input (and hand off this information
   # to the tokenizer/parser). It marks the end of user input for this current
   # command. For this program that is a semi-colon followed by a newline.
-  INPUT_TERMINATOR = ";\n"
+  INPUT_TERMINATOR = "\n"
 
   attr_reader :symbol_table
 
@@ -77,15 +77,16 @@ class Interpreter
   def run_interpreter
     while @is_running
       begin
-        printf '> '
+        printf @tokenizer.state == :string ? "#{@tokenizer.partial_string['delimiter']}> " : '> '
         s = gets INPUT_TERMINATOR
 
         tokens = @tokenizer.process(s.rstrip)
+
         tokens.each do |x|
           debug x
         end
 
-        @parser.parse_tokens tokens
+        @parser.parse_tokens tokens unless @tokenizer.state == :string
       rescue TokenizerError, ParserError => e
         warn "\n[#{e.class.name}] Syntax error => #{e.message}"
       rescue CommandError, SymbolError => e
