@@ -5,7 +5,7 @@
 ##
 # Basic StandardError override to allow for specific rescue statements
 class TokenizerError < StandardError
-  def initialize(original_stream, stream_partial, error = 'Unknown error')
+  def initialize(error = 'Unknown error')
     err = "
 Tokenizer Exception!
 --------------------

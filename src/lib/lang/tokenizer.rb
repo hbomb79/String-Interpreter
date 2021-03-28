@@ -45,7 +45,6 @@ class Tokenizer
   def process(input_stream)
     debug 'Beginning tokenization of input'
 
-    @original_stream = input_stream
     @stream = input_stream
     @stream_char = 1
     @output = []
@@ -163,6 +162,6 @@ class Tokenizer
   end
 
   def raise_tokenizer_error(msg = nil)
-    raise TokenizerError.new(@original_stream, @stream, msg)
+    raise TokenizerError.new msg
   end
 end
