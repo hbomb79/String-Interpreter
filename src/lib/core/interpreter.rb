@@ -24,6 +24,13 @@ class Interpreter
   # The debug level for this application. Options are :off, :basic and :verbose
   DEBUG_LEVEL = :off
 
+  ##
+  # This character, once found at the end of an input string
+  # will terminate the user input (and hand off this information
+  # to the tokenizer/parser). It marks the end of user input for this current
+  # command. For this program that is a semi-colon followed by a newline.
+  INPUT_TERMINATOR = ";\n"
+
   attr_reader :symbol_table
 
   ##
@@ -71,7 +78,7 @@ class Interpreter
     while @is_running
       begin
         printf '> '
-        s = $stdin.gets
+        s = gets INPUT_TERMINATOR
 
         tokens = @tokenizer.process(s.rstrip)
         tokens.each do |x|
