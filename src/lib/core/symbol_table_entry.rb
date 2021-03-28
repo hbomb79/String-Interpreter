@@ -32,6 +32,6 @@ class SymbolTableEntry
   # Overrides the to_s function so when this symbol is interpolated in to a string it is formatted
   # automatically.
   def to_s
-    "#{@name} -> #{@value.dump} #{@readonly ? '[readonly]' : ''}"
+    "Symbol {#{@name} -> #{@value.dump} #{@readonly ? '[readonly]' : ''}}"
   end
 end

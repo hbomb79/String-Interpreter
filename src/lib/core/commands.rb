@@ -43,7 +43,7 @@ module Commands
   def perform_list
     puts 'Symbol table (special chars escaped):'
     @symbol_table.symbols.each do |sym|
-      puts sym
+      puts "#{sym.name} -> #{sym.value.dump} #{sym.readonly ? '[readonly]' : ''}"
     end
   end
 
