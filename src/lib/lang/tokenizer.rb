@@ -199,6 +199,6 @@ class Tokenizer
   end
 
   def raise_tokenizer_error(msg = nil)
-    raise TokenizerError.new(msg)
+    raise TokenizerError, msg
   end
 end

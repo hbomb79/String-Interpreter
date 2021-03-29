@@ -1,13 +1,17 @@
 # frozen_string_literal: true
-#
+
 # Felton, Harry, 18032692, Assignment 1, 159.341
 
 ##
-#
+# Simple singleton module to allow the application to write debug
+# information out to stderr (via warn).
 module DebugOutput
   VALID_DEBUG_LEVELS = %i[off basic verbose].freeze
   @debug_level = :off
 
+  ##
+  # Write information useful for debugging out to stderr (via warn).
+  # Only written if the level provided is enabled (DebugOutput.debug_level=)
   def debug(msg, level = :basic)
     debug_level = DebugOutput.debug_level
     return if debug_level == :off
