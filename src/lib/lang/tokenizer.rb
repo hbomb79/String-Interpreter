@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
+# Felton, Harry, 18032692, Assignment 1, 159.341
+
 require 'error/token_error'
 require 'error/tokenizer_error'
 require 'lang/token'
+require 'core/debug_output'
 
 ##
 # The tokenizer class exposes the various tokens that may exist for this
@@ -10,6 +13,8 @@ require 'lang/token'
 #
 # The processing sees that the input string is split in to 'tokens' (see lang/token.rb)
 class Tokenizer
+  include DebugOutput
+
   ESCAPE_CHARS = {
     'a' => "\a",
     'b' => "\b",
@@ -34,16 +39,27 @@ class Tokenizer
   # chars (incl. underscore). For instance: this_is_name1 will match as a name, but 1name will not.
   NAME_DEF = /^([a-zA-Z][a-zA-z\d]*)/.freeze
 
+  attr_reader :partial_string, :state
+
+  def initialize
+    reset_state
+  end
+
   ##
   # Begins tokenizing the stream by iteratively calling tokenize until
   # no further input remains to be processed.
   def process(input_stream)
-    @original_stream = input_stream
+    debug 'Beginning tokenization of input'
+
     @stream = input_stream
     @stream_char = 1
-    @output = []
 
-    @output.append(tokenize) until @stream.strip.empty?
+    @output = [] if @state == :root
+
+    until @stream.strip.empty?
+      tk = tokenize
+      @output.append(tk) if tk.instance_of? Token
+    end
 
     @output
   end
@@ -53,6 +69,8 @@ class Tokenizer
   ##
   # Called iteratively by `process` until the stream is found to be empty;
   def tokenize
+    return consume_string if @state == :string
+
     trim_stream
 
     # Check if we're dealing with a keyword!
@@ -61,19 +79,32 @@ class Tokenizer
     # Now we must check to see what else we could be finding. Remember whatever we
     # encounter here is the *start* of whatever token it is; a " character here means
     # the start of a string..
+    if @stream[0].match STRING_START_DEF
+      @state = :string
+      @partial_string['delimiter'] = @stream[0]
+      consume
+
+      return nil
+    end
+
     return create_token(:terminator, consume) if @stream[0] == ';'
     return create_token(:operator, consume) if @stream[0] == '+'
-    return create_token(:string, consume_string(@stream[0])) if @stream[0].match STRING_START_DEF
+
     return create_token(:name, consume_pattern(NAME_DEF)) unless @stream.match(NAME_DEF).nil?
 
     raise_tokenizer_error "Illegal character '#{@stream[0]}' - unable to form a token with this character!"
   end
 
-  def raise_tokenizer_error(msg = nil)
-    raise TokenizerError.new(@original_stream, @stream, msg)
-  end
-
   private
+
+  def reset_state
+    @state = :root
+    @partial_string = {
+      'delimiter' => '',
+      'escape_next' => false,
+      'built' => ''
+    }
+  end
 
   ##
   # Trims the stream by removing leading whitespace, and advancing
@@ -91,6 +122,7 @@ class Tokenizer
   # Helper method that creates a token with the provided type and value, and
   # also consumes the content of the token from the input stream.
   def create_token(token_type, token_value)
+    debug "Creating token type #{token_type} -> #{token_value}"
     Token.new(token_type, token_value)
   rescue TokenError => e
     raise_tokenizer_error e.message
@@ -101,6 +133,7 @@ class Tokenizer
   def consume(amount = 1)
     consumed = @stream[0..(amount - 1)]
     @stream = @stream[amount..@stream.length]
+    debug "Consuming n=#{amount} chars (#{consumed})", :verbose
 
     consumed
   end
@@ -112,9 +145,8 @@ class Tokenizer
     m = @stream.match pattern
     return if m.nil?
 
-    puts "Consuming n=#{m.end(0)} chars after matching #{m[0]} from #{@stream}..."
+    debug "Consuming n=#{m.end(0)} chars after matching #{m[0]} from #{@stream}...", :verbose
     consume m.end(0)
-    puts @stream
     m[0]
   end
 
@@ -122,18 +154,25 @@ class Tokenizer
   # Takes the input stream for this tokenizer and attempts to
   # tokenize a string (that is, content between two delimiting symbols). Quotes inside of
   # the string can be escaped with a backslash.
-  def consume_string(delimiter = '"')
-    escape_next = false
+  #
+  # This method saves it's progress to @partial_string while it's state is :string, allowing a string to be tokenized
+  # over multiple lines.
+  # The interpreter will not attempt to parse any of the tokens until the state of the tokenizer is :root (not :string)
+  def consume_string()
+    delimiter = @partial_string['delimiter']
+    escape_next = @partial_string['escape_next']
+    built = @partial_string['built']
     success = false
-    str = ''
 
+    debug "Attempting to consume string (with delim: #{delimiter})"
     loop do
-      consume
       first = @stream[0]
+      break unless first
 
-      puts("Iter for char '#{first}', escaping this char? #{escape_next}, delimiter '#{delimiter}' - current: #{str}")
+      debug "Iter for char '#{first}', escaping this char? #{escape_next}, delimiter '#{delimiter}' - current: #{built}",
+            :verbose
       if escape_next
-        str += ESCAPE_CHARS.include?(first) ? ESCAPE_CHARS[first] : first
+        built += ESCAPE_CHARS.include?(first) ? ESCAPE_CHARS[first] : first
         escape_next = false
       elsif first == '\\'
         escape_next = true
@@ -143,15 +182,23 @@ class Tokenizer
 
         break
       else
-        str += first
+        built += first
       end
+
+      consume
     end
 
-    puts "success: #{success}"
-    unless success
-      raise_tokenizer_error "Failed to tokenize string, delimited by #{delimiter}... end of string was never found!"
+    debug "String consumption success?: #{success}"
+    if success
+      reset_state
+      create_token(:string, built)
+    else
+      @partial_string['escape_next'] = escape_next
+      @partial_string['built'] = built
     end
+  end
 
-    str
+  def raise_tokenizer_error(msg = nil)
+    raise TokenizerError, msg
   end
 end

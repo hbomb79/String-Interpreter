@@ -4,8 +4,8 @@
 
 ##
 # Basic StandardError override to allow for specific rescue statements
-class ParserError < StandardError
-  def initialize(error = nil)
-    super error
+class SymbolError < StandardError
+  def initialize(msg = 'Unknown symbol error')
+    super msg
   end
 end
